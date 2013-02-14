@@ -1,0 +1,39 @@
+<?php
+/**
+ * @file
+ */
+
+/**
+ * Implements hook_requirements().
+ *
+ * @todo check here if there are any unsolved suggestions at all
+ */
+function suggestions_requirements($phase) {
+  $requirements = array();
+
+  switch ($phase) {
+    case 'runtime':
+      $profiles = suggestions_enabled_profiles();
+
+      foreach ($profiles as $profile_id => $profile) {
+        $suggestions = suggestions_profile_current_suggestions($profile);
+
+        if (!empty($suggestions)) {
+          // We do not care here how many suggestions apply, so
+          // break on the first one that applies.
+          $requirements['suggestions'] = array(
+            'title' => t('Suggestions'),
+            'description' => t('There are <a href="@suggestions-report">some suggestions</a> to improve this website. Please read them carefully!', array('@suggestions-report' => url('admin/reports/suggestions'))),
+            'severity' => REQUIREMENT_WARNING,
+            'value' => t('Suggestions available'),
+          );
+
+          break;
+        }
+      }
+
+      break;
+  }
+
+  return $requirements;
+}

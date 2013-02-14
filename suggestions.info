@@ -1,0 +1,21 @@
+name = Suggestions
+description = Suggestions to make your Drupal site better, with single-click resolutions.
+package = Suggestions
+core = 7.x
+php = 5.3
+
+dependencies[] = variable
+dependencies[] = views
+dependencies[] = ctools
+
+files[]=lib/Drupal/Suggestion.php
+files[]=lib/Drupal/Suggestion/Permission.php
+files[]=lib/Drupal/Suggestion/Resolvable.php
+files[]=lib/Drupal/Suggestion/Variable.php
+files[]=lib/Drupal/Suggestion/Module.php
+files[]=lib/Drupal/Suggestion/Node_Options.php
+files[]=lib/Drupal/Suggestion/Watchdog.php
+files[]=lib/Drupal/Suggestion/PHP/ConfigurationOption.php
+files[]=lib/Drupal/Suggestion/PHP/Extension.php
+files[]=lib/Drupal/Suggestion/Image_Style.php
+files[]=lib/Drupal/Suggestion/View.php

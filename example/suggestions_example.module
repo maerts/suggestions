@@ -1,0 +1,38 @@
+<?php
+/**
+ * @file
+ */
+
+/**
+ * Implements hook_suggestions_profile_info().
+ */
+function suggestions_example_suggestions_profile_info() {
+  $profiles = array();
+
+  $profiles['example'] = array(
+    'title' => t('Example profile'),
+    'description' => t('Just an example profile to show how a profile needs to be defined.'),
+    'suggestions callback' => 'suggestions_example_suggestions',
+  );
+
+  return $profiles;
+}
+
+/**
+ * Callback for the example suggestions profile.
+ */
+function suggestions_example_suggestions() {
+  $suggestions = array();
+  foreach (node_type_get_types() as $type) {
+    if (module_exists('content_management')) {
+      $suggestions["cm_role_manage_{$type->type}"] = new Drupal_Suggestion_Permission('content manager', "manage {$type->type} content");
+    }
+
+    if (module_exists('override_node_options')) {
+      $suggestions["cm_role_override_published_{$type->type}"] = new Drupal_Suggestion_Permission('content manager', "override {$type->type} published option");
+    }
+  }
+  $suggestions['module_blog'] = new Drupal_Suggestion_Module('blog', 'Blog');
+
+  return $suggestions;
+}

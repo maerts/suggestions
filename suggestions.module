@@ -1,0 +1,148 @@
+<?php
+/**
+ * @file
+ */
+
+/**
+ * Options callback for the suggestions_profile variable type.
+ */
+function suggestions_available_profiles() {
+  $profiles = module_invoke_all('suggestions_profile_info');
+  $available_profiles = array();
+  foreach ($profiles as $profile_key => $profile) {
+    $available_profiles[$profile_key] = $profile['title'];
+  }
+  return $available_profiles;
+}
+
+/**
+ * Implements hook_menu().
+ *
+ * @todo implement hook_permission() and replace access callbacks below
+ */
+function suggestions_menu() {
+  $items = array();
+
+  $items['admin/reports/suggestions'] = array(
+    'title' => t('Suggestions'),
+    'description' => t('Suggestions to improve this website.'),
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('suggestions_suggestions_form'),
+    'file' => 'suggestions.pages.inc',
+    'access arguments' => array('administer site configuration'),
+  );
+
+  $items['admin/reports/suggestions/list'] = array(
+    'title' => t('Suggestions'),
+    'description' => t('Suggestions to improve this website.'),
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('suggestions_suggestions_form'),
+    'file' => 'suggestions.pages.inc',
+    'access arguments' => array('administer site configuration'),
+    'type' => MENU_LOCAL_TASK,
+    'weight' => 0,
+  );
+
+  $items['admin/reports/suggestions/profiles'] = array(
+    'title' => t('Profiles'),
+    'description' => t('Enable or disable suggestion profiles.'),
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('suggestions_profiles_form'),
+    'file' => 'suggestions.pages.inc',
+    'access arguments' => array('administer site configuration'),
+    'weight' => 1,
+    'type' => MENU_LOCAL_TASK,
+  );
+
+  return $items;
+}
+
+/**
+ * Implements hook_init().
+ */
+function suggestions_init() {
+
+  if (arg(0) == 'admin' && user_access('administer site configuration') && variable_get_value('suggestions_check_in_admin')) {
+    switch ($_GET['q']) {
+      // These pages don't need additional nagging.
+      case 'admin/appearance/update':
+      case 'admin/appearance/install':
+      case 'admin/modules/update':
+      case 'admin/modules/install':
+      case 'admin/reports/updates':
+      case 'admin/reports/updates/update':
+      case 'admin/reports/updates/install':
+      case 'admin/reports/updates/settings':
+      case 'admin/reports/status':
+      case 'admin/update/ready':
+      case 'admin/reports/suggestions':
+      case 'admin/reports/suggestions/list':
+      case 'admin/reports/suggestions/profiles':
+        return;
+    }
+
+    module_load_install('suggestions');
+    $status = suggestions_requirements('runtime');
+
+    if (isset($status['suggestions'])) {
+      drupal_set_message($status['suggestions']['description'], 'warning');
+    }
+  }
+}
+
+/**
+ * Returns the enabled suggestion profiles.
+ *
+ * @return array the identifiers of the enabled suggestion profiles
+ */
+function suggestions_enabled_profiles() {
+  $enabled_profile_identifiers = variable_get_value('suggestions_profiles');
+  $enabled_profile_identifiers = array_filter($enabled_profile_identifiers);
+
+  $all_profiles = module_invoke_all('suggestions_profile_info');
+  $enabled_profiles = array_intersect_key($all_profiles, $enabled_profile_identifiers);
+
+  foreach ($enabled_profiles as $key => $info) {
+    $info['id'] = $key;
+    $enabled_profiles[$key] = $info;
+  }
+
+  return $enabled_profiles;
+}
+
+/**
+ * Returns the enabled suggestions of a certain profile.
+ *
+ * @param array $profile array with suggestion profile info
+ * @return array of the enabled suggestions
+ */
+function suggestions_profile_enabled_suggestions($profile) {
+  if (isset($profile['file path']) && isset($profile['file'])) {
+    $file = $profile['file path'] . $profile['file'];
+    include_once $file;
+  }
+
+  $callback = $profile['suggestions callback'];
+  $suggestions = $callback();
+
+  $ignored_suggestions = variable_get_value("suggestions_${profile['id']}_ignore");
+  $suggestions = array_diff_key($suggestions, array_flip($ignored_suggestions));
+
+  return $suggestions;
+}
+
+/**
+ * Returns the currently applicable suggestions of a certain profile.
+ *
+ * @param array $profile array with suggestion profile info
+ * @return array of the currently applicable suggestions
+ */
+function suggestions_profile_current_suggestions($profile) {
+  $suggestions = suggestions_profile_enabled_suggestions($profile);
+
+  $suggestions = array_filter($suggestions, function ($suggestion) {
+    return $suggestion->assert();
+  });
+
+  return $suggestions;
+}
